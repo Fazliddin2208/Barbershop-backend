@@ -81,6 +81,6 @@ model Booking {
   timeSlotId String   @unique
   timeslot   TimeSlot @relation(fields: [timeSlotId], references: [id])
 
-  serviceId String
-  service   Service @relation(fields: [serviceId], references: [id])
+  serviceId String?
+  service   Service? @relation(fields: [serviceId], references: [id])
 }
