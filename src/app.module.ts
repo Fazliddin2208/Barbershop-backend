@@ -8,10 +8,26 @@ import { ServiceModule } from './service/service.module';
 import { BarberModule } from './barber/barber.module';
 import { TimeslotModule } from './timeslot/timeslot.module';
 import { BookingModule } from './booking/booking.module';
+import { APP_FILTER } from '@nestjs/core';
+import { AllExceptionsFilter } from 'common/filters/http-exception.filter';
 
 @Module({
-  imports: [PrismaModule, UserModule, BarbershopModule, ServiceModule, BarberModule, TimeslotModule, BookingModule],
+  imports: [
+    PrismaModule,
+    UserModule,
+    BarbershopModule,
+    ServiceModule,
+    BarberModule,
+    TimeslotModule,
+    BookingModule,
+  ],
   controllers: [AppController],
-  providers: [AppService],
+  providers: [
+    AppService,
+    {
+      provide: APP_FILTER,
+      useClass: AllExceptionsFilter,
+    },
+  ],
 })
 export class AppModule {}

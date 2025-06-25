@@ -1,16 +1,29 @@
-import { Injectable } from '@nestjs/common';
-import { Prisma } from '@prisma/client';
+import {
+  Injectable,
+  NotFoundException,
+  BadRequestException,
+} from '@nestjs/common';
 import { PrismaService } from 'prisma/prisma.service';
+import { Prisma } from '@prisma/client';
 
 @Injectable()
 export class BarberService {
   constructor(private prisma: PrismaService) {}
 
-  create(data: Prisma.BarberCreateInput) {
+  async create(data: Prisma.BarberCreateInput) {
+    // Barbershop mavjudligini tekshirish
+    const barbershop = await this.prisma.barbershop.findUnique({
+      where: { id: data?.barbershop?.connect?.id },
+    });
+
+    if (!barbershop) {
+      throw new BadRequestException('Barbershop topilmadi');
+    }
+
     return this.prisma.barber.create({ data });
   }
 
-  findAll() {
+  async findAll() {
     return this.prisma.barber.findMany({
       include: {
         barbershop: true,
@@ -18,23 +31,51 @@ export class BarberService {
     });
   }
 
-  findOne(id: string) {
-    return this.prisma.barber.findUnique({
+  async findOne(id: string) {
+    const barber = await this.prisma.barber.findUnique({
       where: { id },
-      include: { barbershop: true },
+      include: {
+        barbershop: true,
+      },
     });
+
+    if (!barber) {
+      throw new NotFoundException('Barber topilmadi');
+    }
+
+    return barber;
   }
 
-  update(id: string, data: Prisma.BarberUpdateInput) {
+  async update(id: string, data: Prisma.BarberUpdateInput) {
+    const barber = await this.prisma.barber.findUnique({ where: { id } });
+
+    if (!barber) {
+      throw new NotFoundException('Barber topilmadi');
+    }
+
+    // Agar barbershop ni o'zgartirish kiritilsa, mavjudligini tekshiramiz
+    if (data.barbershop?.connect?.id) {
+      const barbershop = await this.prisma.barbershop.findUnique({
+        where: { id: data.barbershop.connect.id },
+      });
+      if (!barbershop) {
+        throw new BadRequestException('Barbershop topilmadi');
+      }
+    }
+
     return this.prisma.barber.update({
       where: { id },
       data,
     });
   }
 
-  remove(id: string) {
-    return this.prisma.barber.delete({
-      where: { id },
-    });
+  async delete(id: string) {
+    const barber = await this.prisma.barber.findUnique({ where: { id } });
+
+    if (!barber) {
+      throw new NotFoundException('Barber topilmadi');
+    }
+
+    return this.prisma.barber.delete({ where: { id } });
   }
 }

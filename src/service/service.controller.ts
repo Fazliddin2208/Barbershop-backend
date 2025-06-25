@@ -1,4 +1,12 @@
-import { Controller, Get, Post, Body, Param, Delete, Put } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Get,
+  Param,
+  Post,
+  Delete,
+  Put,
+} from '@nestjs/common';
 import { ServiceService } from './service.service';
 import { Prisma } from '@prisma/client';
 
@@ -27,12 +35,7 @@ export class ServiceController {
   }
 
   @Delete(':id')
-  remove(@Param('id') id: string) {
-    return this.serviceService.remove(id);
-  }
-
-  @Get('barbershop/:barbershopId')
-  findByBarbershop(@Param('barbershopId') barbershopId: string) {
-    return this.serviceService.findByBarbershop(barbershopId);
+  delete(@Param('id') id: string) {
+    return this.serviceService.delete(id);
   }
 }

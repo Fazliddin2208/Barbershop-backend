@@ -1,46 +1,54 @@
-import { Body, Controller, Delete, Get, Param, Post, Put, Query } from '@nestjs/common';
-import { TimeslotService } from './timeslot.service';
+import {
+  Body,
+  Controller,
+  Get,
+  Param,
+  Post,
+  Delete,
+  Put,
+} from '@nestjs/common';
 import { Prisma } from '@prisma/client';
+import { TimeSlotService } from './timeslot.service';
 
 @Controller('timeslots')
-export class TimeslotController {
-  constructor(private readonly timeslotService: TimeslotService) {}
+export class TimeSlotController {
+  constructor(private readonly timeSlotService: TimeSlotService) {}
 
   @Post()
   create(@Body() data: Prisma.TimeSlotCreateInput) {
-    return this.timeslotService.create(data);
+    return this.timeSlotService.create(data);
   }
 
   @Get()
   findAll() {
-    return this.timeslotService.findAll();
+    return this.timeSlotService.findAll();
   }
 
   @Get(':id')
   findOne(@Param('id') id: string) {
-    return this.timeslotService.findOne(id);
-  }
-
-  @Put(':id')
-  update(@Param('id') id: string, @Body() data: Prisma.TimeSlotUpdateInput) {
-    return this.timeslotService.update(id, data);
-  }
-
-  @Delete(':id')
-  remove(@Param('id') id: string) {
-    return this.timeslotService.remove(id);
+    return this.timeSlotService.findOne(id);
   }
 
   @Get('barber/:barberId')
   findByBarber(@Param('barberId') barberId: string) {
-    return this.timeslotService.findByBarber(barberId);
+    return this.timeSlotService.findByBarber(barberId);
   }
 
-  @Post('generate/:barberId')
-  generateSlots(
-    @Param('barberId') barberId: string,
-    @Query('date') date: string,
-  ) {
-    return this.timeslotService.generateSlots(barberId, date);
+  @Put(':id')
+  update(@Param('id') id: string, @Body() data: Prisma.TimeSlotUpdateInput) {
+    return this.timeSlotService.update(id, data);
+  }
+
+  @Delete(':id')
+  delete(@Param('id') id: string) {
+    return this.timeSlotService.delete(id);
+  }
+
+  @Post('generate')
+  generateForDay(@Body() body: { barberId: string; date: string }) {
+    return this.timeSlotService.generateForDay(
+      body.barberId,
+      new Date(body.date),
+    );
   }
 }

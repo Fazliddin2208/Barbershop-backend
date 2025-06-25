@@ -1,9 +1,9 @@
 import { Module } from '@nestjs/common';
-import { TimeslotService } from './timeslot.service';
-import { TimeslotController } from './timeslot.controller';
+import { TimeSlotService } from './timeslot.service';
+import { TimeSlotController } from './timeslot.controller';
 
 @Module({
-  providers: [TimeslotService],
-  controllers: [TimeslotController]
+  providers: [TimeSlotService],
+  controllers: [TimeSlotController]
 })
 export class TimeslotModule {}

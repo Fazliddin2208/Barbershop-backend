@@ -1,16 +1,16 @@
 import {
   Body,
   Controller,
-  Delete,
   Get,
   Param,
   Post,
+  Delete,
   Put,
 } from '@nestjs/common';
 import { BarberService } from './barber.service';
 import { Prisma } from '@prisma/client';
 
-@Controller('barber')
+@Controller('barbers')
 export class BarberController {
   constructor(private readonly barberService: BarberService) {}
 
@@ -35,7 +35,7 @@ export class BarberController {
   }
 
   @Delete(':id')
-  remove(@Param('id') id: string) {
-    return this.barberService.remove(id);
+  delete(@Param('id') id: string) {
+    return this.barberService.delete(id);
   }
 }

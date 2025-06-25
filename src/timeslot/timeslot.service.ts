@@ -1,84 +1,147 @@
-import { Injectable } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  BadRequestException,
+} from '@nestjs/common';
+import { PrismaService } from 'prisma/prisma.service';
 import { Prisma } from '@prisma/client';
 import { addMinutes, format } from 'date-fns';
-import { PrismaService } from 'prisma/prisma.service';
 
 @Injectable()
-export class TimeslotService {
+export class TimeSlotService {
   constructor(private prisma: PrismaService) {}
 
-  create(data: Prisma.TimeSlotCreateInput) {
+  async create(data: Prisma.TimeSlotCreateInput) {
+    // Barber mavjudligini tekshirish
+    const barber = await this.prisma.barber.findUnique({
+      where: { id: data?.barber?.connect?.id },
+    });
+
+    if (!barber) {
+      throw new BadRequestException('Barber topilmadi');
+    }
+
     return this.prisma.timeSlot.create({ data });
   }
 
-  findAll() {
+  async findAll() {
     return this.prisma.timeSlot.findMany({
-      include: { barber: true },
+      include: {
+        barber: true,
+        booking: true,
+      },
     });
   }
 
-  findOne(id: string) {
-    return this.prisma.timeSlot.findUnique({
+  async findOne(id: string) {
+    const slot = await this.prisma.timeSlot.findUnique({
       where: { id },
-      include: { barber: true },
+      include: {
+        barber: true,
+        booking: true,
+      },
+    });
+
+    if (!slot) {
+      throw new NotFoundException('TimeSlot topilmadi');
+    }
+
+    return slot;
+  }
+
+  async findByBarber(barberId: string) {
+    const barber = await this.prisma.barber.findUnique({
+      where: { id: barberId },
+    });
+    if (!barber) {
+      throw new NotFoundException('Barber topilmadi');
+    }
+
+    return this.prisma.timeSlot.findMany({
+      where: { barberId },
+      orderBy: { date: 'asc' },
     });
   }
 
-  update(id: string, data: Prisma.TimeSlotUpdateInput) {
+  async update(id: string, data: Prisma.TimeSlotUpdateInput) {
+    const timeslot = await this.prisma.timeSlot.findUnique({ where: { id } });
+
+    if (!timeslot) {
+      throw new NotFoundException('TimeSlot topilmadi');
+    }
+
+    // Agar barberni o'zgartirish kiritilsa, mavjudligini tekshiramiz
+    if (data.barber?.connect?.id) {
+      const barber = await this.prisma.barber.findUnique({
+        where: { id: data.barber.connect.id },
+      });
+      if (!barber) {
+        throw new BadRequestException('Barber topilmadi');
+      }
+    }
+
     return this.prisma.timeSlot.update({
       where: { id },
       data,
     });
   }
 
-  remove(id: string) {
-    return this.prisma.timeSlot.delete({
-      where: { id },
-    });
+  async delete(id: string) {
+    const slot = await this.prisma.timeSlot.findUnique({ where: { id } });
+
+    if (!slot) {
+      throw new NotFoundException('TimeSlot topilmadi');
+    }
+
+    return this.prisma.timeSlot.delete({ where: { id } });
   }
 
-  findByBarber(barberId: string) {
-    return this.prisma.timeSlot.findMany({
-      where: { barberId },
-    });
-  }
-
-  async generateSlots(barberId: string, date: string, intervalMinutes = 30) {
+  async generateForDay(barberId: string, date: Date) {
     const barber = await this.prisma.barber.findUnique({
       where: { id: barberId },
     });
-
     if (!barber) {
-      throw new Error('Barber topilmadi');
+      throw new BadRequestException('Barber topilmadi');
     }
 
-    const startParts = barber.workStart.split(':').map(Number);
-    const endParts = barber.workEnd.split(':').map(Number);
-
+    // Ish boshlanish va tugash vaqtlarini Date shakliga keltiramiz
     const workDate = new Date(date);
+    const [startHour, startMin] = barber.workStart.split(':').map(Number);
+    const [endHour, endMin] = barber.workEnd.split(':').map(Number);
 
-    const workStart = new Date(workDate);
-    workStart.setHours(startParts[0], startParts[1], 0, 0);
+    const startDateTime = new Date(workDate);
+    startDateTime.setHours(startHour, startMin, 0, 0);
 
-    const workEnd = new Date(workDate);
-    workEnd.setHours(endParts[0], endParts[1], 0, 0);
+    const endDateTime = new Date(workDate);
+    endDateTime.setHours(endHour, endMin, 0, 0);
 
     const slots: Prisma.TimeSlotCreateManyInput[] = [];
 
-    let current = new Date(workStart);
+    let current = new Date(startDateTime);
 
-    while (current < workEnd) {
+    while (current < endDateTime) {
+      const slotStartTime = format(current, 'HH:mm');
+
       slots.push({
         date: workDate,
-        startTime: format(current, 'HH:mm'),
+        startTime: slotStartTime,
         isBooked: false,
         barberId,
       });
-      current = addMinutes(current, intervalMinutes);
+
+      current = addMinutes(current, 30);
     }
 
+    if (slots.length === 0) {
+      throw new BadRequestException(
+        'Ish vaqti noto‘g‘ri belgilangan yoki slotlar chiqmayapti',
+      );
+    }
+
+    // TimeSlotlarni ko'plab qo'shish
     return this.prisma.timeSlot.createMany({
       data: slots,
+      skipDuplicates: true, // Agar bir xil slot allaqachon mavjud bo‘lsa, xato bermaydi
     });
   }
 }

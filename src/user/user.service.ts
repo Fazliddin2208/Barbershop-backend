@@ -1,23 +1,57 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from 'prisma/prisma.service';
+import { Prisma } from '@prisma/client';
 
 @Injectable()
 export class UserService {
   constructor(private prisma: PrismaService) {}
 
-  create(data: { telegramId: string; name: string; phone?: string }) {
+  async createOrGet(data: Prisma.UserCreateInput) {
+    const existingUser = await this.prisma.user.findUnique({
+      where: { telegramId: data.telegramId },
+    });
+
+    if (existingUser) {
+      return existingUser;
+    }
+
     return this.prisma.user.create({ data });
   }
 
-  findAll() {
+  async findAll() {
     return this.prisma.user.findMany();
   }
 
-  findOne(id: string) {
-    return this.prisma.user.findUnique({ where: { id } });
+  async findOne(id: string) {
+    const user = await this.prisma.user.findUnique({ where: { id } });
+
+    if (!user) {
+      throw new NotFoundException('Foydalanuvchi topilmadi');
+    }
+
+    return user;
   }
 
-  delete(id: string) {
+  async update(id: string, data: Prisma.UserUpdateInput) {
+    const user = await this.prisma.user.findUnique({ where: { id } });
+
+    if (!user) {
+      throw new NotFoundException('Foydalanuvchi topilmadi');
+    }
+
+    return this.prisma.user.update({
+      where: { id },
+      data,
+    });
+  }
+
+  async delete(id: string) {
+    const user = await this.prisma.user.findUnique({ where: { id } });
+
+    if (!user) {
+      throw new NotFoundException('Foydalanuvchi topilmadi');
+    }
+
     return this.prisma.user.delete({ where: { id } });
   }
 }

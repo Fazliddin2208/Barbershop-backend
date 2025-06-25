@@ -1,31 +1,62 @@
-import { Injectable } from '@nestjs/common';
-import { Prisma } from '@prisma/client';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from 'prisma/prisma.service';
+import { Prisma } from '@prisma/client';
 
 @Injectable()
 export class BarbershopService {
   constructor(private prisma: PrismaService) {}
 
-  create(data: Prisma.BarbershopCreateInput) {
+  async create(data: Prisma.BarbershopCreateInput) {
     return this.prisma.barbershop.create({ data });
   }
 
-  findAll() {
-    return this.prisma.barbershop.findMany();
+  async findAll() {
+    return this.prisma.barbershop.findMany({
+      include: {
+        barbers: true,
+        services: true,
+      },
+    });
   }
 
-  findOne(id: string) {
-    return this.prisma.barbershop.findUnique({ where: { id } });
+  async findOne(id: string) {
+    const shop = await this.prisma.barbershop.findUnique({
+      where: { id },
+      include: {
+        barbers: true,
+        services: true,
+      },
+    });
+
+    if (!shop) {
+      throw new NotFoundException('Barbershop topilmadi');
+    }
+
+    return shop;
   }
 
-  update(id: string, data: Prisma.BarbershopUpdateInput) {
+  async update(id: string, data: Prisma.BarbershopUpdateInput) {
+    const barbershop = await this.prisma.barbershop.findUnique({
+      where: { id },
+    });
+
+    if (!barbershop) {
+      throw new NotFoundException('Barbershop topilmadi');
+    }
+
     return this.prisma.barbershop.update({
       where: { id },
       data,
     });
   }
 
-  remove(id: string) {
+  async delete(id: string) {
+    const shop = await this.prisma.barbershop.findUnique({ where: { id } });
+
+    if (!shop) {
+      throw new NotFoundException('Barbershop topilmadi');
+    }
+
     return this.prisma.barbershop.delete({ where: { id } });
   }
 }
