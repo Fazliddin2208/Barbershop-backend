@@ -1,4 +1,4 @@
-import { Body, Controller, Delete, Get, Param, Post, Put } from '@nestjs/common';
+import { Body, Controller, Delete, Get, Param, Post, Put, Query } from '@nestjs/common';
 import { TimeslotService } from './timeslot.service';
 import { Prisma } from '@prisma/client';
 
@@ -34,5 +34,13 @@ export class TimeslotController {
   @Get('barber/:barberId')
   findByBarber(@Param('barberId') barberId: string) {
     return this.timeslotService.findByBarber(barberId);
+  }
+
+  @Post('generate/:barberId')
+  generateSlots(
+    @Param('barberId') barberId: string,
+    @Query('date') date: string,
+  ) {
+    return this.timeslotService.generateSlots(barberId, date);
   }
 }
